@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rice Yield Predictor</title>
+<meta name="theme-color" content="#1b5e8a">
+<style>
+  body{font-family:Arial,Helvetica,sans-serif;background:#f4f7fb;color:#222;margin:0;padding:0;display:flex;align-items:center;justify-content:center;height:100vh;}
+  .card{background:#fff;padding:2rem;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,0.1);width:100%;max-width:480px;}
+  h1{font-size:1.4rem;margin-bottom:0.5rem;color:#1b5e8a;}
+  p{margin:0.25rem 0 1rem;color:#444;}
+  label{font-weight:600;display:block;margin-top:1rem;}
+  input{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px;margin-top:0.3rem;}
+  button{background:#1b5e8a;color:white;border:none;border-radius:8px;padding:10px 14px;margin-top:1.2rem;cursor:pointer;font-weight:600;width:100%;}
+  button:hover{background:#156ca5;}
+  .result{margin-top:1rem;padding:10px;background:#e7f5e9;border-left:4px solid #1b5e8a;border-radius:8px;color:#1b5e8a;display:none;}
+  .error{margin-top:1rem;padding:10px;background:#fde7e7;border-left:4px solid #b00020;border-radius:8px;color:#b00020;display:none;}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Rice Yield Predictor</h1>
+  <p>Enter the sowing date to predict the yield for the selected field.</p>
+  <label for="fid">Field ID</label>
+  <input type="text" id="fid" placeholder="e.g., 123" />
+  <label for="sowDate">Sowing Date</label>
+  <input type="date" id="sowDate" />
+  <button id="predict">Predict Yield</button>
+  <div id="result" class="result"></div>
+  <div id="error" class="error"></div>
+</div>
+<script>
+const API_URL = "https://unrefinedly-weaklier-olimpia.ngrok-free.dev/predict";
+const TOKEN = "abc123";
+
+document.getElementById("predict").addEventListener("click", async () => {
+  const fid = document.getElementById("fid").value.trim();
+  const sowDate = document.getElementById("sowDate").value;
+  const result = document.getElementById("result");
+  const error = document.getElementById("error");
+  result.style.display = "none";
+  error.style.display = "none";
+
+  if (!fid || !sowDate) {
+    error.textContent = "Please enter both Field ID and Sowing Date.";
+    error.style.display = "block";
+    return;
+  }
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${TOKEN}`,
+        "ngrok-skip-browser-warning": "any"
+      },
+      body: JSON.stringify({ FID: fid, SowDate: sowDate })
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Prediction failed.");
+
+    result.textContent = `Predicted Yield: ${data.YieldPred.toFixed(2)}`;
+    result.style.display = "block";
+  } catch (err) {
+    console.error(err);
+    error.textContent = "Error: " + err.message;
+    error.style.display = "block";
+  }
+});
+</script>
+</body>
+</html>
