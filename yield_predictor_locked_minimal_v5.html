@@ -15,12 +15,12 @@
     --muted:#6b7a90;
     --ok:#126e3c;
     --warn:#b00020;
-    --shadow: 0 8px 24px rgba(0,0,0,.08);
-    --radius: 14px;
+    --shadow:0 8px 24px rgba(0,0,0,.08);
+    --radius:14px;
   }
   body{
     margin:0;
-    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", sans-serif;
+    font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,"Noto Sans",sans-serif;
     background:var(--bg);
     color:var(--text);
     display:flex;
@@ -28,40 +28,96 @@
     justify-content:center;
     min-height:100vh;
   }
-  .card{ width:min(560px, 94vw); background:var(--panel); border-radius:var(--radius);
-         box-shadow:var(--shadow); padding:22px; }
+  .card{
+    width:min(560px,94vw);
+    background:var(--panel);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:22px;
+  }
   h1{font-size:1.2rem;margin:0 0 .5rem;color:var(--brand)}
   p.sub{margin:0 0 1rem;color:var(--muted)}
   label{display:block;margin:.5rem 0 .25rem;font-weight:600}
-  input[type="date"]{ width:100%;padding:10px 12px;border:1px solid #cfd8e3;border-radius:10px;background:transparent;color:inherit; }
-  button{ margin-top:12px;appearance:none;border:0;border-radius:10px;padding:10px 14px;
-          background:linear-gradient(180deg,var(--brand),var(--brand-2));color:#fff;font-weight:700;cursor:pointer;
-          box-shadow:0 6px 16px rgba(11,94,167,.25); }
-  .msg{padding:12px;border-radius:10px;background:#eef3f9;color:#1f2a3a;min-height:120px;display:flex;align-items:center;justify-content:center;text-align:center}
-  .result{margin-top:12px;padding:12px;border-radius:10px;background:#eaf7ef;color:var(--ok);font-weight:700;display:none}
-  .error{margin-top:12px;padding:12px;border-radius:10px;background:#fde7ea;color:var(--warn);display:none}
+  input[type="date"]{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid #cfd8e3;
+    border-radius:10px;
+    background:transparent;
+    color:inherit;
+  }
+  button{
+    margin-top:12px;
+    appearance:none;
+    border:0;
+    border-radius:10px;
+    padding:10px 14px;
+    background:linear-gradient(180deg,var(--brand),var(--brand-2));
+    color:#fff;
+    font-weight:700;
+    cursor:pointer;
+    box-shadow:0 6px 16px rgba(11,94,167,.25);
+  }
+  .msg{
+    padding:12px;
+    border-radius:10px;
+    background:#eef3f9;
+    color:#1f2a3a;
+    min-height:100px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+  }
+  .result{
+    margin-top:12px;
+    padding:12px;
+    border-radius:10px;
+    background:#eaf7ef;
+    color:var(--ok);
+    font-weight:700;
+    display:none;
+  }
+  .error{
+    margin-top:12px;
+    padding:12px;
+    border-radius:10px;
+    background:#fde7ea;
+    color:var(--warn);
+    display:none;
+  }
   .hidden{display:none}
-  .fid-pill{display:inline-block;margin:.3rem 0;padding:6px 10px;border-radius:999px;background:#e9f2fb;color:#0b5ea7;font-weight:700}
-  .debug{font-size:.8rem;color:var(--muted);margin:.25rem 0}
+  .fid-pill{
+    display:inline-block;
+    margin:.3rem 0;
+    padding:6px 10px;
+    border-radius:999px;
+    background:#e9f2fb;
+    color:#0b5ea7;
+    font-weight:700;
+  }
 </style>
 </head>
 <body>
-  <main class="card">
-    <h1>Yield Predictor</h1>
-    <p class="sub">Click a rice field on the map. Then pick the sowing date to see the yield.</p>
+<main class="card">
+  <h1>Yield Predictor</h1>
+  <p class="sub">Click a rice field on the map, then enter the sowing date to see the predicted yield.</p>
 
-    <div id="needFid" class="msg">Please <strong>click a rice field</strong> on the map to continue.</div>
+  <div id="needFid" class="msg">
+    🌾 Please select a rice field on the map to begin.
+  </div>
 
-    <div id="form" class="hidden">
-      <div class="fid-pill">Selected Field ID: <span id="selectedFid">—</span></div>
-      <div id="debug" class="debug"></div>
-      <label for="sowDate">Sowing Date</label>
-      <input type="date" id="sowDate" />
-      <button id="predict">Predict Yield</button>
-      <div id="result" class="result" role="status" aria-live="polite"></div>
-      <div id="error" class="error" role="alert"></div>
-    </div>
-  </main>
+  <div id="form" class="hidden">
+    <div class="fid-pill">Selected Field ID: <span id="selectedFid">—</span></div>
+
+    <label for="sowDate">Sowing Date</label>
+    <input type="date" id="sowDate" />
+    <button id="predict">Predict Yield</button>
+
+    <div id="result" class="result" role="status" aria-live="polite"></div>
+    <div id="error" class="error" role="alert"></div>
+  </div>
+</main>
 
 <script>
 const API_URL = "https://unrefinedly-weaklier-olimpia.ngrok-free.dev/predict";
@@ -75,54 +131,18 @@ const TOKEN   = "abc123";
   const result = document.getElementById("result");
   const error = document.getElementById("error");
   const selectedFid = document.getElementById("selectedFid");
-  const debug = document.getElementById("debug");
-
   let currentFID = null;
 
   function parseFID(raw){
     if(!raw) return "";
-    // Strip braces and spaces, e.g., "{123}" -> "123"
-    const v = decodeURIComponent(String(raw).replace(/[{}]/g,"").trim());
-    return v;
-  }
-
-  function fromSearch(url){
-    const u = new URL(url);
-    const p = u.searchParams;
-    const keys = ["FID","fid","OBJECTID","ObjectID","OBJECTID_1","FieldID","fieldid"];
-    for(const k of keys){
-      if(p.has(k)) return parseFID(p.get(k));
-    }
-    return "";
-  }
-
-  function fromHash(url){
-    const h = (new URL(url)).hash || "";
-    if(!h) return "";
-    // Support both "#FID=123" and "#...&FID=123"
-    const q = h.startsWith("#") ? h.slice(1) : h;
-    const sp = new URLSearchParams(q);
-    const keys = ["FID","fid","OBJECTID","ObjectID","OBJECTID_1","FieldID","fieldid"];
-    for(const k of keys){
-      if(sp.has(k)) return parseFID(sp.get(k));
-    }
-    return "";
+    return decodeURIComponent(String(raw).replace(/[{}]/g,"").trim());
   }
 
   function getFID(){
-    // Try search first
-    let v = fromSearch(location.href);
-    if(v) return v;
-    // Then hash (some embeds push tokens into hash)
-    v = fromHash(location.href);
-    if(v) return v;
-    // Finally, try referrer (some hosts keep iframe URL static and change parent url)
-    try{
-      if(document.referrer){
-        v = fromSearch(document.referrer) || fromHash(document.referrer);
-        if(v) return v;
-      }
-    }catch(_){}
+    const u = new URL(location.href);
+    const p = u.searchParams;
+    const keys = ["FID","fid","OBJECTID","ObjectID"];
+    for(const k of keys){ if(p.has(k)) return parseFID(p.get(k)); }
     return "";
   }
 
@@ -135,53 +155,45 @@ const TOKEN   = "abc123";
       result.style.display = "none";
       error.style.display = "none";
       sow.value = "";
+    }else if(!fid){
+      currentFID = null;
+      needFid.classList.remove("hidden");
+      form.classList.add("hidden");
     }
-    debug.textContent = "URL seen: " + location.href + " | referrer: " + (document.referrer || "(none)") + " | FID: " + (currentFID || "(none)");
   }
 
-  // Initial
   updateUI(getFID());
+  setInterval(()=>updateUI(getFID()),400);
 
-  // Watch for changes
-  setInterval(() => {
-    const fid = getFID();
-    if(fid !== currentFID){
-      updateUI(fid);
-    }
-  }, 400);
+  const show=(n,t)=>{n.style.display="block";n.textContent=t};
+  const hide=n=>{n.style.display="none";n.textContent=""};
 
-  const show = (node, txt) => { node.style.display='block'; node.textContent = txt; };
-  const hide = (node) => { node.style.display='none'; node.textContent=''; };
+  btn.addEventListener("click",async()=>{
+    hide(result);hide(error);
+    const fid=currentFID;
+    const date=sow.value;
+    if(!fid){show(error,"Please select a rice field first.");return;}
+    if(!date){show(error,"Please select the sowing date.");return;}
 
-  btn?.addEventListener("click", async () => {
-    hide(result); hide(error);
-    const fid = currentFID;
-    const date = sow.value;
-    if (!fid){ show(error, "No field selected. Please click a field on the map."); return; }
-    if (!date){ show(error, "Please pick the sowing date."); return; }
-
-    try {
-      const resp = await fetch(API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${TOKEN}`,
-          "ngrok-skip-browser-warning": "any"
+    try{
+      const r=await fetch(API_URL,{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization":`Bearer ${TOKEN}`,
+          "ngrok-skip-browser-warning":"any"
         },
-        body: JSON.stringify({ FID: fid, SowDate: date })
+        body:JSON.stringify({FID:fid,SowDate:date})
       });
-      const text = await resp.text();
-      let data; try { data = JSON.parse(text); } catch {}
-      if (!resp.ok) throw new Error((data && (data.error || data.message)) || text || resp.statusText);
-
-      const val = Number(data && data.YieldPred);
-      if (!isFinite(val)) throw new Error("Prediction returned no numeric value.");
-      show(result, `Predicted Yield: ${val.toFixed(2)}`);
-    } catch (e) {
-      show(error, "Error: " + (e.message || e));
-    }
+      const t=await r.text();let d;try{d=JSON.parse(t);}catch{}
+      if(!r.ok)throw new Error((d&&d.error)||t||r.statusText);
+      const val=Number(d&&d.YieldPred);
+      if(!isFinite(val))throw new Error("Prediction returned no numeric value.");
+      show(result,`Predicted Yield : ${val.toFixed(2)}`);
+    }catch(e){show(error,"Error: "+(e.message||e));}
   });
 })();
 </script>
 </body>
 </html>
+
