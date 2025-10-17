@@ -34,6 +34,10 @@
 const API_URL = "https://unrefinedly-weaklier-olimpia.ngrok-free.dev/predict";
 const TOKEN = "abc123";
 
+const params = new URLSearchParams(location.search);
+if (params.get("FID")) document.getElementById("fid").value = params.get("FID");
+  
+  
 document.getElementById("predict").addEventListener("click", async () => {
   const fid = document.getElementById("fid").value.trim();
   const sowDate = document.getElementById("sowDate").value;
