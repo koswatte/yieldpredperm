@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Yield Predictor</title>
+<meta name="theme-color" content="#1b5e8a">
+<style>
+  :root{
+    --brand:#1b5e8a;
+    --brand-2:#0b5ea7;
+    --bg:#f6f8fb;
+    --panel:#ffffff;
+    --text:#1f2a3a;
+    --muted:#6b7a90;
+    --ok:#126e3c;
+    --warn:#b00020;
+    --shadow: 0 8px 24px rgba(0,0,0,.08);
+    --radius: 14px;
+  }
+  body{
+    margin:0;
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+  }
+  .card{
+    width:min(560px, 94vw);
+    background:var(--panel);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:22px;
+  }
+  h1{font-size:1.2rem;margin:0 0 .5rem;color:var(--brand)}
+  p.sub{margin:0 0 1rem;color:var(--muted)}
+  label{display:block;margin:.5rem 0 .25rem;font-weight:600}
+  input[type="date"]{
+    width:100%;padding:10px 12px;border:1px solid #cfd8e3;border-radius:10px;background:transparent;color:inherit;
+  }
+  button{
+    margin-top:12px;appearance:none;border:0;border-radius:10px;padding:10px 14px;
+    background:linear-gradient(180deg,var(--brand),var(--brand-2));color:#fff;font-weight:700;cursor:pointer;
+    box-shadow:0 6px 16px rgba(11,94,167,.25);
+  }
+  .msg{padding:12px;border-radius:10px;background:#eef3f9;color:#1f2a3a;min-height:120px;display:flex;align-items:center;justify-content:center;text-align:center}
+  .result{margin-top:12px;padding:12px;border-radius:10px;background:#eaf7ef;color:var(--ok);font-weight:700;display:none}
+  .error{margin-top:12px;padding:12px;border-radius:10px;background:#fde7ea;color:var(--warn);display:none}
+  .hidden{display:none}
+  .fid-pill{display:inline-block;margin:.3rem 0;padding:6px 10px;border-radius:999px;background:#e9f2fb;color:#0b5ea7;font-weight:700}
+</style>
+</head>
+<body>
+  <main class="card">
+    <h1>Yield Predictor</h1>
+    <p class="sub">Click a rice field on the map. Then pick the sowing date to see the yield.</p>
+
+    <!-- Message shown until FID arrives -->
+    <div id="needFid" class="msg">
+      Please <strong>click a rice field</strong> on the map to continue.
+    </div>
+
+    <!-- Form shown only when FID is present -->
+    <div id="form" class="hidden">
+      <div class="fid-pill">Selected Field ID: <span id="selectedFid">—</span></div>
+      <label for="sowDate">Sowing Date</label>
+      <input type="date" id="sowDate" />
+      <button id="predict">Predict Yield</button>
+      <div id="result" class="result" role="status" aria-live="polite"></div>
+      <div id="error" class="error" role="alert"></div>
+    </div>
+  </main>
+
+<script>
+// Locked API endpoint & token
+const API_URL = "https://unrefinedly-weaklier-olimpia.ngrok-free.dev/predict";
+const TOKEN   = "abc123";
+
+(function(){
+  const needFid = document.getElementById("needFid");
+  const form = document.getElementById("form");
+  const sow = document.getElementById("sowDate");
+  const btn = document.getElementById("predict");
+  const result = document.getElementById("result");
+  const error = document.getElementById("error");
+  const selectedFid = document.getElementById("selectedFid");
+
+  let currentFID = null;
+
+  function getFIDFromURL(){
+    const params = new URLSearchParams(window.location.search);
+    return (params.get("FID") || "").trim();
+  }
+
+  function updateUIForFID(fid){
+    if (fid && fid !== currentFID){
+      currentFID = fid;
+      needFid.classList.add("hidden");
+      form.classList.remove("hidden");
+      selectedFid.textContent = fid;
+      // Clear previous outputs when FID changes
+      result.style.display = "none";
+      error.style.display = "none";
+      sow.value = "";
+    }
+  }
+
+  // Initial check
+  updateUIForFID(getFIDFromURL());
+
+  // WATCH for URL changes (ExB sometimes updates iframe src without full reload)
+  setInterval(() => {
+    const fid = getFIDFromURL();
+    if (fid !== currentFID){
+      updateUIForFID(fid);
+    }
+  }, 400);
+
+  const show = (node, txt) => { node.style.display='block'; node.textContent = txt; };
+  const hide = (node) => { node.style.display='none'; node.textContent=''; };
+
+  btn?.addEventListener("click", async () => {
+    hide(result); hide(error);
+    const fid = currentFID;
+    const date = sow.value;
+    if (!fid){ show(error, "No field selected. Please click a field on the map."); return; }
+    if (!date){ show(error, "Please pick the sowing date."); return; }
+
+    try {
+      const resp = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${TOKEN}`,
+          "ngrok-skip-browser-warning": "any"
+        },
+        body: JSON.stringify({ FID: fid, SowDate: date })
+      });
+      const text = await resp.text();
+      let data; try { data = JSON.parse(text); } catch {}
+      if (!resp.ok) throw new Error((data && (data.error || data.message)) || text || resp.statusText);
+
+      const val = Number(data && data.YieldPred);
+      if (!isFinite(val)) throw new Error("Prediction returned no numeric value.");
+      show(result, `Predicted Yield: ${val.toFixed(2)}`);
+    } catch (e) {
+      show(error, "Error: " + (e.message || e));
+    }
+  });
+})();
+</script>
+</body>
+</html>
